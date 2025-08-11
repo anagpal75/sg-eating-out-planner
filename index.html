@@ -1,0 +1,189 @@
+<!doctype html>
+<html><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SG Eating-Out Planner — Interactive (Today Prefilled)</title>
+<style>
+  :root{--bg:#0d1117; --card:#111827; --mut:#9aa3b2; --txt:#e6e8ef; --accent:#6aa9ff}
+  *{box-sizing:border-box} body{margin:0;background:var(--bg);color:var(--txt);font-family:system-ui,-apple-system,Segoe UI,Roboto}
+  header{position:sticky;top:0;z-index:10;background:#0f1524;border-bottom:1px solid #1f2840;padding:.8rem 1rem}
+  header h1{margin:0;font-size:1.05rem}
+  .wrap{max-width:900px;margin:0 auto;padding:1rem}
+  .row{display:flex;gap:.5rem;flex-wrap:wrap;align-items:center}
+  .pill{display:inline-flex;gap:.35rem;align-items:center;padding:.28rem .6rem;border:1px solid #27314d;border-radius:999px;background:#0e1423;color:#cdd4e6;font-size:.8rem}
+  .btn{cursor:pointer;border-radius:10px;padding:.5rem .7rem;background:#0e1423;border:1px solid #27314d;color:#e6e8ef}
+  .btn.primary{background:var(--accent);border-color:transparent;color:#071225}
+  .card{background:var(--card);border:1px solid #1f2840;border-radius:14px;padding:1rem;margin-bottom:1rem}
+  .grid{display:grid;grid-template-columns:1fr;gap:1rem} @media(min-width:900px){.grid{grid-template-columns:1.1fr .9fr}}
+  table{width:100%;border-collapse:collapse} th,td{padding:.6rem;border-bottom:1px dashed #26304a;font-size:.95rem} th{text-align:left;color:#cbd2e6}
+  .right{text-align:right} .bar{height:8px;background:#0f1422;border:1px solid #27314d;border-radius:999px;overflow:hidden;margin-top:.35rem}
+  .bar>span{display:block;height:100%;background:var(--accent);width:0%}
+  .mut{color:#9aa3b2} .catalog{display:grid;grid-template-columns:1fr;gap:.7rem} @media(min-width:600px){.catalog{grid-template-columns:repeat(2,1fr)}}
+  .item{display:grid;grid-template-columns:64px 1fr auto;gap:.6rem;align-items:center;background:#10192b;border:1px solid #26304a;border-radius:12px;padding:.6rem}
+  .item img{width:64px;height:64px;border-radius:10px;border:1px solid #26304a;object-fit:cover}
+  .name{font-weight:600} .sub{color:#9aa3b2;font-size:.85rem} .note{color:#9aa3b2}
+</style>
+</head>
+<body>
+<header><h1>SG Eating-Out Planner — Interactive</h1></header>
+<div class="wrap">
+
+  <div class="card">
+    <div class="row" style="justify-content:space-between">
+      <div class="row">
+        <span class="pill">Target 1750</span><span class="pill">P 110g</span><span class="pill">C 200g</span><span class="pill">F 58g</span><span class="pill">Steps 9000</span>
+      </div>
+      <div class="row">
+        <button class="btn" id="lockBtn" onclick="toggleLock()">Unlock</button>
+      </div>
+    </div>
+    <div class="mut" style="margin-top:.5rem">Today's page opens pre-filled. Unlock to edit or add from catalog.</div>
+  </div>
+
+  <div class="grid">
+    <div class="card">
+      <table id="dayTable">
+        <thead><tr><th>Meal</th><th>Item</th><th class="right">Kcal</th><th>P</th><th>F</th><th>C</th><th>Sugar</th><th>Fiber</th><th></th></tr></thead>
+        <tbody id="dayBody"></tbody>
+        <tfoot><tr><td colspan="2">Food Total</td><td id="totKcal">0</td><td id="totP">0 g</td><td id="totF">0 g</td><td id="totC">0 g</td><td id="totS">0 g</td><td id="totFi">0 g</td><td></td></tr></tfoot>
+      </table>
+      <div class="row" style="margin-top:.7rem">
+        <div style="flex:1"><b>Calories</b><div class="bar"><span id="calBar"></span></div><div class="mut" id="calNote">0 / 1750</div></div>
+        <div style="flex:1"><b>Protein</b><div class="bar"><span id="pBar"></span></div><div class="mut" id="pNote">0 / 110 g</div></div>
+        <div style="flex:1"><b>Carbs</b><div class="bar"><span id="cBar"></span></div><div class="mut" id="cNote">0 / 200 g</div></div>
+      </div>
+      <div class="row" style="margin-top:.7rem">
+        <input id="stepsInput" class="btn" type="number" min="0" placeholder="Enter steps…" oninput="updateSteps()">
+        <span class="pill" id="stepsPill">0 / 9000</span>
+        <span class="mut" id="burnNote">~0 kcal burned (1 kcal ≈ 46 steps)</span>
+        <span class="mut" id="netNote">Net: 0</span>
+      </div>
+      <div class="row" style="margin-top:.7rem">
+        <button class="btn" onclick="exportDay()">Export CSV</button>
+        <button class="btn" onclick="saveDay()">Save Day</button>
+        <button class="btn" onclick="clearDay()">Clear</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="row" style="margin-bottom:.6rem">
+        <input id="search" class="btn" placeholder="Search meals or brands…" oninput="renderCatalog()">
+        <select id="category" class="btn" onchange="renderCatalog()">
+          <option value="all">All categories</option>
+          <option>Fast Food</option><option>Hawker</option><option>Japanese & Korean</option>
+          <option>Western & Café</option><option>Seafood & Mala</option><option>Snacks & Sides</option>
+          <option>Tex-Mex</option><option>Breakfasts</option><option>Fruits</option><option>Drinks</option>
+        </select>
+        <select id="dest" class="btn"><option>Breakfast</option><option>Lunch</option><option>Snack</option><option>Dinner</option></select>
+      </div>
+      <div id="catalog" class="catalog"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+const GOALS = {kcal:1750, protein:110, carbs:200, steps:9000};
+const DAY_KEY = "sg_today_day_v1"; const STEPS_KEY = "sg_today_steps_v1";
+const CATALOG = [
+  {"name":"Fish soup (extra fish, no noodles)","brand":"Hawker","cat":"Hawker","kcal":260,"p":38,"f":6,"c":6,"s":2,"fi":1,"img":"","note":"Lean, clear, high protein."},
+  {"name":"Yong Tau Foo (no noodles, 8 items + soup)","brand":"YTF stall","cat":"Hawker","kcal":360,"p":26,"f":12,"c":28,"s":6,"fi":5,"img":"","note":"Tofu/fish paste items."},
+  {"name":"Grilled chicken breast + salad + sweet potato (small)","brand":"Cafe","cat":"Western & Café","kcal":520,"p":42,"f":16,"c":48,"s":8,"fi":7,"img":"","note":""},
+  {"name":"Salmon Sashimi (12 pcs)","brand":"Sushi chain","cat":"Japanese & Korean","kcal":280,"p":48,"f":9,"c":0,"s":0,"fi":0,"img":""},
+  {"name":"Spicy chicken burrito bowl + fries + Coke Zero","brand":"Guzman y Gomez","cat":"Tex-Mex","kcal":840,"p":45,"f":38,"c":75,"s":2,"fi":8,"img":""},
+  {"name":"Ayam Penyet + nasi (½ rice)","brand":"Ayam Penyet Ria / hawker","cat":"Hawker","kcal":710,"p":38,"f":32,"c":65,"s":4,"fi":4,"img":""},
+  {"name":"McSpicy + small fries + Coke Zero","brand":"McDonald's","cat":"Fast Food","kcal":750,"p":30,"f":33,"c":72,"s":6,"fi":4,"img":""},
+  {"name":"Double Cheeseburger + small fries + Coke Zero","brand":"McDonald's","cat":"Fast Food","kcal":720,"p":37,"f":34,"c":63,"s":7,"fi":4,"img":""},
+  {"name":"Greek yogurt (unsweetened) 170g","brand":"Don Don Donki","cat":"Snacks & Sides","kcal":100,"p":15,"f":2,"c":6,"s":4,"fi":0,"img":""},
+  {"name":"Edamame cup","brand":"Don Don Donki","cat":"Snacks & Sides","kcal":150,"p":12,"f":5,"c":13,"s":2,"fi":5,"img":""},
+  {"name":"Watermelon (150g)","brand":"Fruit","cat":"Fruits","kcal":45,"p":0.9,"f":0.2,"c":11,"s":9,"fi":0.6,"img":""},
+  {"name":"Pineapple (150g)","brand":"Fruit","cat":"Fruits","kcal":75,"p":0.8,"f":0.2,"c":20,"s":16,"fi":2.0,"img":""},
+  {"name":"Rock melon (150g)","brand":"Fruit","cat":"Fruits","kcal":54,"p":1.3,"f":0.3,"c":13,"s":12,"fi":1.0,"img":""}
+];
+
+let locked = true;
+let day = [];
+let steps = Number(localStorage.getItem(STEPS_KEY) || 0);
+
+// Prefill today's items & steps once
+(function prefill(){
+  try{
+    if(!localStorage.getItem("sg_seeded_2025_08_11")){
+      const pre = [{"meal": "Breakfast", "name": "Half cup milk", "brand": "Home", "cat": "Breakfasts", "kcal": 60, "p": 3, "f": 3, "c": 5, "s": 5, "fi": 0, "img": "", "note": ""}, {"meal": "Breakfast", "name": "Nescafe Gold coffee (1 spoon)", "brand": "Home", "cat": "Drinks", "kcal": 2, "p": 0, "f": 0, "c": 0, "s": 0, "fi": 0, "img": "", "note": ""}, {"meal": "Breakfast", "name": "Ritz biscuits (10 pcs)", "brand": "Supermarket", "cat": "Snacks & Sides", "kcal": 160, "p": 2, "f": 8, "c": 20, "s": 3, "fi": 1, "img": "", "note": ""}, {"meal": "Snack", "name": "Cranberry chicken croissant roll with lettuce", "brand": "Cafe", "cat": "Western & Caf\u00e9", "kcal": 280, "p": 10, "f": 14, "c": 28, "s": 4, "fi": 2, "img": "", "note": ""}, {"meal": "Snack", "name": "Mini pizza bread slice (pineapple, sausage, veg)", "brand": "Cafe", "cat": "Western & Caf\u00e9", "kcal": 230, "p": 9, "f": 8, "c": 30, "s": 4, "fi": 2, "img": "", "note": ""}, {"meal": "Snack", "name": "Coffee with milk", "brand": "Cafe", "cat": "Drinks", "kcal": 40, "p": 2, "f": 1, "c": 6, "s": 4, "fi": 0, "img": "", "note": ""}, {"meal": "Snack", "name": "Mixed fruits (2 pineapple, 2 rock melon, 2 watermelon, 2 apple slices)", "brand": "Fruit", "cat": "Fruits", "kcal": 90, "p": 1, "f": 0, "c": 23, "s": 18, "fi": 2, "img": "", "note": ""}, {"meal": "Dinner", "name": "Crave Ayam Penyet + rice + sambal + fried egg", "brand": "Ayam Penyet Ria / hawker", "cat": "Hawker", "kcal": 910, "p": 45, "f": 37, "c": 95, "s": 6, "fi": 2, "img": "", "note": "Full portion, with egg"}];
+      localStorage.setItem(DAY_KEY, JSON.stringify(pre.map(it => ({...it, id: Date.now()+Math.random()}))));
+      localStorage.setItem(STEPS_KEY, 3300);
+      localStorage.setItem("sg_seeded_2025_08_11","1");
+    }
+  }catch(e){}
+})();
+
+function toggleLock(){ locked = !locked; document.getElementById('lockBtn').textContent = locked?"Unlock":"Lock"; }
+function addToDay(dest, it){ if(locked){ alert("Unlock first to edit."); return; } day.push({meal:dest, ...it, id: Date.now()+Math.random()}); saveAll(); renderDay(); }
+function removeItem(id){ if(locked){ alert("Unlock first to edit."); return; } day = day.filter(x => x.id !== id); saveAll(); renderDay(); }
+function exportDay(){ const headers = ["Meal","Name","Brand","Category","Kcal","Protein","Fat","Carbs","Sugar","Fiber"]; const rows = day.map(d => [d.meal,d.name,d.brand,d.cat,d.kcal,d.p,d.f,d.c,d.s,d.fi]); const csv = [headers.join(","), ...rows.map(r => r.join(","))].join("\n"); const url = URL.createObjectURL(new Blob([csv], {type:"text/csv"})); const a=document.createElement('a'); a.href=url; a.download="daily_log.csv"; a.click(); URL.revokeObjectURL(url); }
+function saveDay(){ const date=new Date().toLocaleString(); const HIST_KEY="sg_today_hist_v1"; const history=JSON.parse(localStorage.getItem(HIST_KEY)||"[]"); history.push({date, steps, items:day}); localStorage.setItem(HIST_KEY, JSON.stringify(history)); alert("Saved."); }
+function clearDay(){ if(!confirm("Clear today?")) return; day=[]; steps=0; saveAll(); renderDay(); renderSteps(); }
+
+function renderCatalog(){
+  const q = (document.getElementById('search').value||"").toLowerCase();
+  const cat = document.getElementById('category').value;
+  const dest = document.getElementById('dest').value;
+  const el = document.getElementById('catalog'); el.innerHTML="";
+  CATALOG.filter(it => (cat==='all' || it.cat===cat))
+         .filter(it => it.name.toLowerCase().includes(q) || (it.brand||'').toLowerCase().includes(q))
+         .slice(0,80)
+         .forEach(it => {
+            const d=document.createElement('div'); d.className="item";
+            const img=document.createElement('img'); img.src = it.img || "";
+            const meta=document.createElement('div'); meta.innerHTML = `<div class="name">${it.name}</div><div class="sub">${it.brand} • ${it.cat}</div><div class="note">Kcal <b>${it.kcal}</b> • P <b>${it.p}g</b> • F <b>${it.f}g</b> • C <b>${it.c}g</b></div>`;
+            const btn=document.createElement('button'); btn.className="btn"; btn.textContent="Add to "+dest; btn.onclick=()=>addToDay(dest,it);
+            d.appendChild(img); d.appendChild(meta); d.appendChild(btn); el.appendChild(d);
+         });
+}
+
+function renderDay(){
+  const body=document.getElementById('dayBody'); body.innerHTML="";
+  ["Breakfast","Lunch","Snack","Dinner"].forEach(m => {
+    day.filter(d=>d.meal===m).forEach(d=>{
+      const tr=document.createElement('tr');
+      tr.innerHTML=`<td>${d.meal}</td><td>${d.name} <span class="mut">(${d.brand})</span></td>
+      <td class="right">${d.kcal}</td><td>${d.p} g</td><td>${d.f} g</td><td>${d.c} g</td><td>${d.s} g</td><td>${d.fi} g</td>
+      <td><button class="btn" onclick="removeItem(${d.id})">Remove</button></td>`;
+      body.appendChild(tr);
+    });
+  });
+  const tot = day.reduce((a,d)=>({k:a.k+d.kcal,p:a.p+d.p,f:a.f+d.f,c:a.c+d.c,s:a.s+d.s,fi:a.fi+d.fi}),{k:0,p:0,f:0,c:0,s:0,fi:0});
+  document.getElementById('totKcal').textContent=Math.round(tot.k);
+  document.getElementById('totP').textContent=tot.p.toFixed(1)+" g";
+  document.getElementById('totF').textContent=tot.f.toFixed(1)+" g";
+  document.getElementById('totC').textContent=tot.c.toFixed(1)+" g";
+  document.getElementById('totS').textContent=tot.s.toFixed(1)+" g";
+  document.getElementById('totFi').textContent=tot.fi.toFixed(1)+" g";
+  document.getElementById('calBar').style.width = Math.min(100, (tot.k/GOALS.kcal)*100)+"%";
+  document.getElementById('pBar').style.width = Math.min(100, (tot.p/GOALS.protein)*100)+"%";
+  document.getElementById('cBar').style.width = Math.min(100, (tot.c/GOALS.carbs)*100)+"%";
+  document.getElementById('calNote').textContent = `${Math.round(tot.k)} / ${GOALS.kcal}`;
+  document.getElementById('pNote').textContent = `${tot.p.toFixed(1)} / ${GOALS.protein} g`;
+  document.getElementById('cNote').textContent = `${tot.c.toFixed(1)} / ${GOALS.carbs} g`;
+  renderSteps();
+}
+function updateSteps(){ steps = Number(document.getElementById('stepsInput').value||0); saveAll(); renderSteps(); }
+function renderSteps(){
+  document.getElementById('stepsPill').textContent = `${steps} / ${GOALS.steps}`;
+  const burned = Math.floor(steps/46);
+  document.getElementById('burnNote').textContent = `~${burned} kcal burned (1 kcal ≈ 46 steps)`;
+  const food = day.reduce((a,d)=>a+d.kcal,0);
+  document.getElementById('netNote').textContent = `Net: ${Math.round(food - burned)}`;
+}
+function saveAll(){ localStorage.setItem(DAY_KEY, JSON.stringify(day)); localStorage.setItem(STEPS_KEY, steps); }
+
+document.addEventListener('DOMContentLoaded', ()=>{
+  const saved = JSON.parse(localStorage.getItem(DAY_KEY) || "[]");
+  if(saved.length){ day = saved; } else {
+    day = [{"meal": "Breakfast", "name": "Half cup milk", "brand": "Home", "cat": "Breakfasts", "kcal": 60, "p": 3, "f": 3, "c": 5, "s": 5, "fi": 0, "img": "", "note": ""}, {"meal": "Breakfast", "name": "Nescafe Gold coffee (1 spoon)", "brand": "Home", "cat": "Drinks", "kcal": 2, "p": 0, "f": 0, "c": 0, "s": 0, "fi": 0, "img": "", "note": ""}, {"meal": "Breakfast", "name": "Ritz biscuits (10 pcs)", "brand": "Supermarket", "cat": "Snacks & Sides", "kcal": 160, "p": 2, "f": 8, "c": 20, "s": 3, "fi": 1, "img": "", "note": ""}, {"meal": "Snack", "name": "Cranberry chicken croissant roll with lettuce", "brand": "Cafe", "cat": "Western & Caf\u00e9", "kcal": 280, "p": 10, "f": 14, "c": 28, "s": 4, "fi": 2, "img": "", "note": ""}, {"meal": "Snack", "name": "Mini pizza bread slice (pineapple, sausage, veg)", "brand": "Cafe", "cat": "Western & Caf\u00e9", "kcal": 230, "p": 9, "f": 8, "c": 30, "s": 4, "fi": 2, "img": "", "note": ""}, {"meal": "Snack", "name": "Coffee with milk", "brand": "Cafe", "cat": "Drinks", "kcal": 40, "p": 2, "f": 1, "c": 6, "s": 4, "fi": 0, "img": "", "note": ""}, {"meal": "Snack", "name": "Mixed fruits (2 pineapple, 2 rock melon, 2 watermelon, 2 apple slices)", "brand": "Fruit", "cat": "Fruits", "kcal": 90, "p": 1, "f": 0, "c": 23, "s": 18, "fi": 2, "img": "", "note": ""}, {"meal": "Dinner", "name": "Crave Ayam Penyet + rice + sambal + fried egg", "brand": "Ayam Penyet Ria / hawker", "cat": "Hawker", "kcal": 910, "p": 45, "f": 37, "c": 95, "s": 6, "fi": 2, "img": "", "note": "Full portion, with egg"}].map(it => ({...it, id: Date.now()+Math.random()}));
+    steps = 3300; saveAll();
+  }
+  document.getElementById('stepsInput').value = steps || "";
+  renderDay(); renderCatalog();
+  document.getElementById('lockBtn').textContent = "Unlock";
+});
+</script>
+</body></html>
