@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Wellness Hub</title>
+<style>
+    body { font-family: Arial, sans-serif; margin: 0; padding: 0; text-align: center; }
+    header { background-color: #4CAF50; color: white; padding: 10px 0; }
+    nav { margin: 20px 0; }
+    button { margin: 5px; padding: 10px 20px; font-size: 16px; cursor: pointer; }
+    section { display: none; padding: 20px; }
+    section.active { display: block; }
+</style>
+</head>
+<body>
+
+<header>
+    <h1>Wellness Hub</h1>
+</header>
+
+<nav>
+    <button onclick="showSection('mealPlan')">Your 14-Day Meal Plan</button>
+    <button onclick="showSection('logMeals')">Log Your Meals</button>
+    <button onclick="showSection('logExercise')">Log Your Exercise</button>
+    <button onclick="showSection('dashboard')">Dashboard</button>
+</nav>
+
+<section id="mealPlan" class="active">
+    <h2>14-Day Meal Plan</h2>
+    <div id="planOutput">Click "Generate Plan" to see meals.</div>
+    <br>
+    <button onclick="generatePlan()">Generate Plan</button>
+</section>
+
+<section id="logMeals">
+    <h2>Log Your Meals</h2>
+    <input id="mealName" placeholder="Meal Name"> 
+    <input id="mealCalories" placeholder="Calories" type="number">
+    <button onclick="logMeal()">Log Meal</button>
+    <div id="mealLog"></div>
+</section>
+
+<section id="logExercise">
+    <h2>Log Your Exercise</h2>
+    <input id="exerciseName" placeholder="Exercise Name"> 
+    <input id="exerciseCalories" placeholder="Calories Burned" type="number">
+    <button onclick="logExercise()">Log Exercise</button>
+    <div id="exerciseLog"></div>
+</section>
+
+<section id="dashboard">
+    <h2>Dashboard</h2>
+    <canvas id="calorieChart" width="400" height="200"></canvas>
+</section>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+const foods = [
+    {name: "Oatmeal with berries", cal: 300, protein: 10, carbs: 55, fat: 5},
+    {name: "Grilled chicken salad", cal: 350, protein: 40, carbs: 10, fat: 15},
+    {name: "Greek yogurt with honey", cal: 200, protein: 15, carbs: 25, fat: 5},
+    {name: "Salmon with quinoa", cal: 500, protein: 45, carbs: 40, fat: 20},
+    {name: "Egg white omelette", cal: 250, protein: 20, carbs: 5, fat: 10},
+    {name: "Protein shake", cal: 180, protein: 25, carbs: 10, fat: 3}
+];
+
+function showSection(id) {
+    document.querySelectorAll("section").forEach(sec => sec.classList.remove("active"));
+    document.getElementById(id).classList.add("active");
+}
+
+function generatePlan() {
+    let plan = "";
+    for (let day = 1; day <= 14; day++) {
+        let breakfast = foods[Math.floor(Math.random()*foods.length)].name;
+        let lunch = foods[Math.floor(Math.random()*foods.length)].name;
+        let dinner = foods[Math.floor(Math.random()*foods.length)].name;
+        plan += `<h3>Day ${day}</h3>`;
+        plan += `<p>Breakfast: ${breakfast}</p>`;
+        plan += `<p>Lunch: ${lunch}</p>`;
+        plan += `<p>Dinner: ${dinner}</p>`;
+    }
+    document.getElementById("planOutput").innerHTML = plan;
+}
+
+let mealHistory = [];
+function logMeal() {
+    const name = document.getElementById("mealName").value;
+    const cal = parseInt(document.getElementById("mealCalories").value);
+    if(name && cal) {
+        mealHistory.push({name, cal});
+        updateMealLog();
+        updateChart();
+    }
+}
+
+function updateMealLog() {
+    document.getElementById("mealLog").innerHTML = mealHistory.map(m => `${m.name} - ${m.cal} cal`).join("<br>");
+}
+
+let exerciseHistory = [];
+function logExercise() {
+    const name = document.getElementById("exerciseName").value;
+    const cal = parseInt(document.getElementById("exerciseCalories").value);
+    if(name && cal) {
+        exerciseHistory.push({name, cal});
+        updateExerciseLog();
+        updateChart();
+    }
+}
+
+function updateExerciseLog() {
+    document.getElementById("exerciseLog").innerHTML = exerciseHistory.map(e => `${e.name} - ${e.cal} cal`).join("<br>");
+}
+
+function updateChart() {
+    const ctx = document.getElementById('calorieChart').getContext('2d');
+    const days = Array.from({length: 7}, (_, i) => `Day ${i+1}`);
+    const caloriesIn = Array(7).fill(0).map((_, i) => mealHistory[i]?.cal || 0);
+    const caloriesOut = Array(7).fill(0).map((_, i) => exerciseHistory[i]?.cal || 0);
+    if(window.chartInstance) window.chartInstance.destroy();
+    window.chartInstance = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: days,
+            datasets: [
+                {label: 'Calories In', data: caloriesIn, backgroundColor: 'rgba(75,192,192,0.6)'},
+                {label: 'Calories Out', data: caloriesOut, backgroundColor: 'rgba(255,99,132,0.6)'}
+            ]
+        }
+    });
+}
+</script>
+
+</body>
+</html>
